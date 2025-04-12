@@ -18,7 +18,6 @@ const ShopContextProvider = (props) => {
   const navigate = useNavigate();
 
   const addToCart = async (itemId, size) => {
-
     if(!size) {
       toast.error('Select Product Size');
       return;
@@ -41,6 +40,17 @@ const ShopContextProvider = (props) => {
       toast.success('Item Added to Cart!');
     }
     setCartItems(cartData);
+
+    // db things
+    if(token) {
+      try {
+        const response = await axios.post(backend_url + '/api/cart/add', {itemId, size}, {headers: {token} });
+        console.log(response.data);
+      } catch (error) {
+        console.log(error);
+        toast.error(error.message);
+      }
+    }
   }
 
   const getCartCount = () => {
@@ -52,7 +62,8 @@ const ShopContextProvider = (props) => {
             totalCount += cartItems[items][item];
           }
         } catch (error) {
-
+          console.log(error);
+          toast.error(error.message);
         }
       }
     }
@@ -63,6 +74,14 @@ const ShopContextProvider = (props) => {
     let cartData = structuredClone(cartItems);
     cartData[itemId][size] = quantity;
     setCartItems(cartData);
+
+    if(token) {
+      try {
+        await axios.post(backend_url + '/api/cart/update', {itemId, size, quantity}, {headers: {token} });
+      } catch (error) {
+        
+      }
+    }
   }
 
   const getCartAmount = () => {
@@ -98,6 +117,18 @@ const ShopContextProvider = (props) => {
     }
   }
 
+  const getUserCart = async (token) => {
+    try {
+      const response = await axios.post(backend_url + '/api/cart/get', {}, {headers: {token}});
+      if(response.data.success) {
+        setCartItems(response.data.cartData);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.message);
+    }
+  }
+
   useEffect(() => {
     getProductsData();
   }, []);
@@ -105,6 +136,7 @@ const ShopContextProvider = (props) => {
   useEffect(() => {
     if(!token && localStorage.getItem('token')) {
       setToken(localStorage.getItem('token'));
+      getUserCart(localStorage.getItem('token'));
     }
   }, []);
 
